@@ -6,14 +6,12 @@
 
 {
     "template": "pandoc -t {output_format} -o {output_file} {input_file}",
-    "definition": {
-        "type": "function",
-        "function": {
-            "name": "file_format_convert",
-            "description": "Use pandoc to convert file",
-            "parameters": {
-                ...
-            }
+    "type": "function",
+    "function": {
+        "name": "file_format_convert",
+        "description": "Use pandoc to convert file",
+        "parameters": {
+            ...
         }
     }
 }
@@ -24,20 +22,21 @@ SKILL.md必须包含description和usage描述。
 import re
 from pathlib import Path
 
-def parse_skill(skill_dir: str) -> dict:
+def parse_skill(skill_path: Path) -> dict:
     '''
     读取skill_dir目录的SKILL.md并解析skill
     
-    >>> skill = parse_skill('../skills/file_format_convert')
+    >>> skill = parse_skill(Path('../skills/file_format_convert'))
     >>> skill['template']
     'pandoc -f {input_format} -t {output_format} -o {output_file} {input_file}'
-    >>> skill['definition']['function']['name']
+    >>> skill['type']
+    'function'
+    >>> skill['function']['name']
     'file_format_convert'
-    >>> skill['definition']['function']['parameters']['required']
+    >>> skill['function']['parameters']['required']
     ['input_format', 'output_format', 'output_file', 'input_file']
     '''
-    p = Path(skill_dir).resolve()
-    skill_md = p.joinpath('SKILL.md')
+    skill_md = skill_path / 'SKILL.md'
     with open(skill_md, 'r', encoding='utf-8') as f:
         md_content = f.read()
     sections = split_markdown_by_titles(md_content)
@@ -47,8 +46,8 @@ def parse_skill(skill_dir: str) -> dict:
         raise ValueError('No description found in SKILL.md')
     description = parse_description(sections['description'])
     skill = parse_usage(sections['usage'])
-    skill['definition']['function']['name'] = p.name
-    skill['definition']['function']['description'] = description
+    skill['function']['name'] = skill_path.name
+    skill['function']['description'] = description
     return skill
 
 def split_markdown_by_titles(md_content: str) -> dict:
@@ -106,7 +105,7 @@ def parse_usage(usage: str) -> dict:
     >>> usage_text = '\\n pandoc -f {input_format} -t {output_format} -o {output_file} {input_file} \\n - input_format: specify input format, can be asciidoc, html, markdown \\n - output_format: specify output format, can be asciidoc, docx, pdf \\n - output_file: the output file name \\n - input_file: the input file name '
     >>> tool_call = parse_usage(usage_text)
     >>> json.dumps(tool_call)
-    '{"template": "pandoc -f {input_format} -t {output_format} -o {output_file} {input_file}", "definition": {"type": "function", "function": {"parameters": {"type": "object", "properties": {"input_format": {"type": "string", "description": "specify input format, can be asciidoc, html, markdown"}, "output_format": {"type": "string", "description": "specify output format, can be asciidoc, docx, pdf"}, "output_file": {"type": "string", "description": "the output file name"}, "input_file": {"type": "string", "description": "the input file name"}}, "required": ["input_format", "output_format", "output_file", "input_file"]}}}}'
+    '{"template": "pandoc -f {input_format} -t {output_format} -o {output_file} {input_file}", "type": "function", "function": {"parameters": {"type": "object", "properties": {"input_format": {"type": "string", "description": "specify input format, can be asciidoc, html, markdown"}, "output_format": {"type": "string", "description": "specify output format, can be asciidoc, docx, pdf"}, "output_file": {"type": "string", "description": "the output file name"}, "input_file": {"type": "string", "description": "the input file name"}}, "required": ["input_format", "output_format", "output_file", "input_file"]}}}'
     >>> usage_text = '\\n pandoc -f {input_format} -t {output_format} -o {output_file} {input_file} \\n - input_format: specify input format, can be asciidoc, html, markdown \\n - output_format: specify output format, can be asciidoc, docx, pdf \\n - output_file: the output file name '
     >>> parse_usage(usage_text)
     Traceback (most recent call last):
@@ -143,7 +142,8 @@ def parse_usage(usage: str) -> dict:
         for key, desc in arg_descriptions.items() if key in placeholders
     }
 
-    tool_json = {
+    return {
+        'template': command_template,
         'type': 'function',
         'function': {
             'parameters': {
@@ -152,11 +152,6 @@ def parse_usage(usage: str) -> dict:
                 'required': placeholders
             }
         }
-    }
-
-    return {
-        'template': command_template,
-        'definition': tool_json
     }
 
 if __name__ == '__main__':
