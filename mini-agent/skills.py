@@ -31,11 +31,12 @@ def exec_command(**kw):
         raise ValueError('Missing parameter: command')
     command = kw['command']
     result = subprocess.run(command, shell=True, capture_output=True, text=True, encoding='utf-8')
-    return {
-        'exit_code': result.returncode,
-        'stdout': result.stdout,
-        'stderr': result.stderr
-    }
+    exit_code = result.returncode
+    stdout = result.stdout
+    stderr = result.stderr
+    if exit_code != 0:
+        return f'Error {exit_code}:\n{stdout}\n{stderror}'
+    return f'{stdout}\n{stderror}'
 
 class Skill:
     def __init__(self, name: str, description: str, tool_call: dict, func: callable):
@@ -144,6 +145,22 @@ class SkillManager:
             raise ValueError(f'Duplicate skill: {name}')
         self._skills[name] = Skill(name, description, skill_tool_call, func)
         print(f'skill "{name}" loaded: {description}')
+
+    def run_skill(self, tool_call: object) -> str:
+        try:
+            result = self._run_skill(tool_call)
+            return str(result)
+        except Exception as e:
+            return f'Error: {e}'
+
+    def _run_skill(self, tool_call: object) -> str:
+        name = tool_call.function.name
+        args = json.loads(tool_call.function.arguments)
+        print(f'try call skill {name}: {json.dumps(args)}')
+        if not name in self._skills:
+            raise ValueError(f'Skill {name} not found.')
+        skill = self._skills[name]
+        return skill.run(**args)
 
 if __name__ == '__main__':
     import doctest
