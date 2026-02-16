@@ -10,6 +10,7 @@ from prompt_toolkit import Application
 from prompt_toolkit.application import get_app
 from prompt_toolkit.layout import Layout, HSplit, VSplit
 from prompt_toolkit.layout.containers import Window
+from prompt_toolkit.layout.dimension import Dimension as D
 from prompt_toolkit.widgets import TextArea, RadioList, Frame
 from prompt_toolkit.key_binding import KeyBindings
 
@@ -29,11 +30,19 @@ class MiniAgent:
         self.current_session = None
 
         # TUI 组件
-        self.task_list = TextArea(text='xxx')
-        # self.task_list = RadioList(values=[
-        #     ("task-1", "📝 任务: 修复Bug"),
-        #     ("task-2", "🚀 任务: 部署xxx环境"),
-        # ])
+        #self.task_list = TextArea(text='xxx')
+        self.task_list = RadioList(values=[
+            ("task-0", "默认：聊天"),
+            ("task-1", "📝 任务: 修复Bug"),
+            ("task-2", "🚀 任务: 部署xxx环境"),
+            ("task-3", "📝 任务: 修复Bug"),
+            ("task-4", "🚀 任务: 部署xxx环境"),
+            ("task-5", "📝 任务: 修复Bug"),
+            ("task-6", "🚀 任务: 部署xxx环境"),
+            ("task-7", "📝 任务: 修复Bug"),
+            ("task-8", "🚀 任务: 部署xxx环境"),
+            ("task-9", "📝 任务: 修复Bug"),
+        ])
         self.output_field = TextArea(text=r'''
         _       _     _                    _   
   /\/\ (_)_ __ (_)   /_\   __ _  ___ _ __ | |_ 
@@ -146,9 +155,22 @@ version 0.1
             pass
 
     def run(self):
+        # 关键修复：使用HSplit包装RadioList，添加填充占满高度
+        task_container = HSplit([
+            # RadioList 内容
+            self.task_list,
+            # 填充容器：占满剩余所有空间
+            Window(height=D(weight=1))
+        ])
         upper_layout = VSplit([
-            Frame(self.output_field, title='Log'),
-            Frame(self.task_list, title='Tasks', width=25)
+            Frame(self.output_field, title='Log', height=D(weight=1)),
+            # 右侧Tasks面板：使用包装后的容器，确保占满高度
+            Frame(
+                task_container,
+                title='Tasks',
+                width=25,
+                height=D(weight=1)
+            )
         ])
         layout = Layout(HSplit([
             upper_layout,
