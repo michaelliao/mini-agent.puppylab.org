@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import json
 import subprocess
 from pathlib import Path
 
@@ -58,6 +59,8 @@ class SkillManager:
     skill "read_file" loaded: ...
     skill "write_file" loaded: ...
     skill "exec_command" loaded: ...
+    >>> sm.get_tool_calls() # doctest: +ELLIPSIS
+    '[{"type": "function", "function": {...}]'
     '''
 
     def __init__(self, skills_path: Path):
@@ -161,6 +164,10 @@ class SkillManager:
             raise ValueError(f'Skill {name} not found.')
         skill = self._skills[name]
         return skill.run(**args)
+
+    def get_tool_calls(self):
+        tool_calls = [skill.tool_call for skill in self._skills.values()]
+        return json.dumps(tool_calls)
 
 if __name__ == '__main__':
     import doctest
