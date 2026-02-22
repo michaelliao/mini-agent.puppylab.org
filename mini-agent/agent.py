@@ -16,6 +16,18 @@ from prompt_toolkit.key_binding import KeyBindings
 
 from skills import SkillManager
 
+class MyRadioList(RadioList):
+    def __init__(self, *args, on_change=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.on_change = on_change
+
+    def _handle_enter(self):
+        # RadioList 原本的回车逻辑是选中并返回
+        # 我们在这里插入自己的回调
+        super()._handle_enter()
+        if self.on_change:
+            self.on_change(self.current_value)
+
 class MiniAgent:
     def __init__(self, workspace: Path = None):
         # 路径初始化:
@@ -30,8 +42,7 @@ class MiniAgent:
         self.current_session = None
 
         # TUI 组件
-        #self.task_list = TextArea(text='xxx')
-        self.task_list = RadioList(values=[
+        self.task_list = MyRadioList(values=[
             ("task-0", "默认：聊天"),
             ("task-1", "📝 任务: 修复Bug"),
             ("task-2", "🚀 任务: 部署xxx环境"),
@@ -42,14 +53,15 @@ class MiniAgent:
             ("task-7", "📝 任务: 修复Bug"),
             ("task-8", "🚀 任务: 部署xxx环境"),
             ("task-9", "📝 任务: 修复Bug"),
-        ])
+        ], on_change=self.on_task_changed)
+
         self.output_field = TextArea(text=r'''
-        _       _     _                    _   
-  /\/\ (_)_ __ (_)   /_\   __ _  ___ _ __ | |_ 
+        _       _     _                    _
+  /\/\ (_)_ __ (_)   /_\   __ _  ___ _ __ | |_
  /    \| | '_ \| |  //_\\ / _` |/ _ \ '_ \| __|
-/ /\/\ \ | | | | | /  _  \ (_| |  __/ | | | |_ 
+/ /\/\ \ | | | | | /  _  \ (_| |  __/ | | | |_
 \/    \/_|_| |_|_| \_/ \_/\__, |\___|_| |_|\__|
-                          |___/                
+                          |___/
 version 0.1
 ''' + 'Type /help for commands.\n', read_only=True, scrollbar=True)
         self.input_field = TextArea(prompt="> ", multiline=True)
@@ -102,6 +114,12 @@ version 0.1
         self.output_field.buffer.cursor_position = len(self.output_field.text)
 
     # --- 命令实现函数 ---
+    def on_task_changed(self, value):
+        """RadioList选中回调（value是选中的ID，如task-1）"""
+        # 查找选中项的显示文本
+        selected_label = next((label for val, label in self.task_list.values if val == value), None)
+        if selected_label:
+            self.append_log(f"\n[🔍 已选中任务]: {selected_label} (ID: {value})")
 
     def _cmd_new(self, task_name: str):
         date_str = datetime.now().strftime("%Y-%m-%d")
